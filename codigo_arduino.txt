@@ -1,0 +1,58 @@
+#include <WiFi.h>
+
+const char *ssid = "Phelyppe";
+const char *password = "erickviado";
+int ledPin = 2; // Pino do LED
+
+WiFiServer server(80);
+
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  Serial.begin(115200);
+
+  // Conectar ao WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Conectando ao WiFi...");
+  }
+  Serial.println("Conectado ao WiFi");
+
+  // Iniciar servidor
+  server.begin();
+  Serial.println("Servidor iniciado");
+
+  // Imprimir o endereço IP no console Serial
+  Serial.print("Endereço IP do ESP32: ");
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  WiFiClient client = server.available();
+  
+  if (client) {
+    Serial.println("Novo cliente conectado");
+    
+    String request = client.readStringUntil('\r');
+    client.flush();
+    
+    if (request.indexOf("/ligar") != -1) {
+      digitalWrite(ledPin, HIGH);
+      Serial.println("Ligou"); // Ligar o LED
+      client.print("HTTP/1.1 200 OK\r\n\r\n");
+      client.print("LED Ligado");
+    } else if (request.indexOf("/desligar") != -1) {
+      digitalWrite(ledPin, LOW);
+      Serial.println("Desligou"); // Desligar o LED
+      client.print("HTTP/1.1 200 OK\r\n\r\n");
+      client.print("LED Desligado");
+    } else {
+      client.print("HTTP/1.1 404 Not Found\r\n\r\n");
+      client.print("Recurso não encontrado");
+    }
+    
+    delay(1);
+    client.stop();
+    Serial.println("Cliente desconectado");
+  }
+}
